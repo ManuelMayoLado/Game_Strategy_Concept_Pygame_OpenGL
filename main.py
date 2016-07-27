@@ -55,6 +55,7 @@ def main():
     global pos_camara
     pos_camara[:] = [4.5, 0]
     #INICIAR OPENGL
+    pos_mouse_gl = False
 
     init_gl()
 
@@ -102,7 +103,10 @@ def main():
         #debuxar_hex(100,[ANCHO_FASE/2,ALTO_FASE/2])
         #debuxar_fila(20,[ANCHO_FASE/2,ALTO_FASE/2], 5)
         radio = 20
-        debuxar_grella(radio, [1.7 * radio, 2 * radio], 10, 8)
+        if pos_mouse_gl:
+            debuxar_grella(radio, [1.7 * radio, 2 * radio], 10, 8, *pos_mouse_gl)
+        else:
+            debuxar_grella(radio, [1.7 * radio, 2 * radio], 10, 8)
         ############################################
         #EVENTOS
         ############################################

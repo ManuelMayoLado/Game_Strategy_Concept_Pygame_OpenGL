@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+#from __future__ import division
+
 #### FUNCIONS ####
 ##################
 
@@ -40,11 +42,13 @@ def debuxar_linha(vertices):
     for v in vertices:
         glVertex2f(v[0],v[1])
     glEnd()
-    
-def debuxar_hex(radio,pos):
+
+hexagono_resaltado = [6, 3]
+
+def debuxar_hex(radio, centro, cor):
     glLoadIdentity()
-    glTranslatef(pos[0],pos[1],0)
-    glColor4f(0, 0.5, 1.0, 0.8)
+    glTranslatef(centro[0],centro[1],0)
+    glColor4f(*cor)
     glBegin(GL_POLYGON)
     for i in range(6):
         ang = i/6.0*2*math.pi
@@ -58,16 +62,56 @@ def debuxar_hex(radio,pos):
         glVertex2d(math.sin(ang)*radio,math.cos(ang)*radio)
     glEnd()
 
-def debuxar_fila(radio, pos, n):
-    for i in xrange(n):
-        posx = pos[0] + math.sqrt(3) * radio * i
-        debuxar_hex(radio, [posx, pos[1]])
+def columna_fila_a_pixeles(radio, centro0, columna, fila):
+    return [centro0[0] + math.sqrt(3) * radio * (columna + (fila % 2) / 2.0),
+            centro0[1] + 1.5 * radio * fila]
 
-def debuxar_grella(radio, pos, columnas, filas):
+def xyz_a_columna_fila(x, y, z):
+    # com cada x a columna aumenta 1
+    assert x + y + z == 0
+    columna = x + (z - z % 2) / 2
+    fila = -z
+    return columna, fila
+
+def pixeles_a_columna_fila(radio, centro0, px, py):
+    # q = x, r = z
+    px -= centro0[0]
+    py -= centro0[1]
+    px /= float(radio)
+    py /= float(radio)
+    py = -py
+    # sem redondear
+    x = (px * math.sqrt(3) - py) / 3
+    z = py * 2.0/3
+    y = -x - z
+    x, y, z = redondea_xyz(x, y, z)
+    return xyz_a_columna_fila(x, y, z)
+
+def redondea_xyz(x, y, z):
+    rx = round(x)
+    ry = round(y)
+    rz = round(z)
+    dx = abs(rx - x)
+    dy = abs(ry - y)
+    dz = abs(rz - z)
+    m = max(dx, dy, dz)
+    if m == dx:
+        rx = -ry - rz
+    elif m == dy:
+        ry = -rx - rz
+    elif m == dz:
+        rz = -rx - ry
+    return rx, ry, rz
+
+def debuxar_grella(radio, centro0, columnas, filas, px=None, py=None):
     for fila in xrange(filas):
-        posx = pos[0] + (fila % 2) * radio * math.sqrt(3) / 2.0
-        posy = pos[1] + 1.5 * radio * fila
-        debuxar_fila(radio, [posx, posy], columnas)
+        for columna in xrange(columnas):
+            centro = columna_fila_a_pixeles(radio, centro0, columna, fila)
+            if None not in [px, py] and (columna, fila) == pixeles_a_columna_fila(radio, centro0, px, py):
+                cor = 1.0, 1.0, 0.0, 0.9
+            else:
+                cor = 0, 0.5, 1.0, 0.8
+            debuxar_hex(radio, centro, cor)
 
 def debuxar_rect_gl(vertices,pos=False):
     glLoadIdentity()
