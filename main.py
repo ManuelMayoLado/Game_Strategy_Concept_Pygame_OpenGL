@@ -22,7 +22,7 @@ if os.name == 'nt' and sys.getwindowsversion()[0] >= 6:
 camara_libre = True
 mostrar_cadricula = True
 
-_fase_cargada = True
+_fase_cargada = False
 
 #INICIAR PYGAME
 
@@ -56,6 +56,8 @@ def main():
     pos_camara[:] = [4.5, 0]
     #INICIAR OPENGL
     pos_mouse_gl = False
+	
+    radio = 20
 
     init_gl()
 
@@ -71,7 +73,10 @@ def main():
         if not _fase_cargada:
 
             #LISTAS DE OPENGL
-
+            
+            ID_LISTA_GRELLA = glGenLists(1)
+            crear_lista_grella(ID_LISTA_GRELLA,radio,[1.7 * radio, 2 * radio],10,8)
+            
             _fase_cargada = True
 
         #LIMPIAR VENTANA
@@ -102,11 +107,17 @@ def main():
         glColor4f(0, 0.5, 1, 0.8)
         #debuxar_hex(100,[ANCHO_FASE/2,ALTO_FASE/2])
         #debuxar_fila(20,[ANCHO_FASE/2,ALTO_FASE/2], 5)
-        radio = 20
+        
+        #if pos_mouse_gl:
+        #    debuxar_grella(radio, [1.7 * radio, 2 * radio], 10, 8, *pos_mouse_gl)
+        #else:
+        #    debuxar_grella(radio, [1.7 * radio, 2 * radio], 10, 8)
+        
+        glCallList(ID_LISTA_GRELLA)
+        
         if pos_mouse_gl:
-            debuxar_grella(radio, [1.7 * radio, 2 * radio], 10, 8, *pos_mouse_gl)
-        else:
-            debuxar_grella(radio, [1.7 * radio, 2 * radio], 10, 8)
+             debuxar_hex_con_pxpy(radio,[1.7 * radio, 2 * radio],10,8,pos_mouse_gl[0],pos_mouse_gl[1])
+        
         ############################################
         #EVENTOS
         ############################################
@@ -135,13 +146,17 @@ def main():
             #MOUSE
             if evento.type == pygame.MOUSEBUTTONDOWN:
                 if evento.button == 4:
-                    ANCHO_PANTALLA_GL -= 3
-                    if camara_libre:
-                        pos_camara[0] += 1.5
+                    if not ANCHO_PANTALLA_GL == ANCHO_FASE/2:
+                        ANCHO_PANTALLA_GL -= 4
+                        ANCHO_PANTALLA_GL = max(ANCHO_FASE/2,ANCHO_PANTALLA_GL)
+                        pos_camara[0] += 2
+                        pos_camara[1] += 2
                 elif evento.button == 5:
-                    ANCHO_PANTALLA_GL += 3
-                    if camara_libre:
-                        pos_camara[0] -= 1.5
+                    if not ANCHO_PANTALLA_GL == ANCHO_FASE:
+                        ANCHO_PANTALLA_GL += 4
+                        ANCHO_PANTALLA_GL = min(ANCHO_FASE,ANCHO_PANTALLA_GL)
+                        pos_camara[0] -= 2
+                        pos_camara[1] -= 2
                 if evento.button in [4,5]:
                     ALTO_PANTALLA_GL = ANCHO_PANTALLA_GL / DIF_ASP
 
@@ -184,7 +199,11 @@ def main():
             pos_camara[1] += 1
         if tecla_pulsada[K_DOWN]:
             pos_camara[1] -= 1
-            print "pos_camara", pos_camara
+        pos_camara[0] = max(0,pos_camara[0])
+        pos_camara[0] = min(ANCHO_FASE-ANCHO_PANTALLA_GL,pos_camara[0])
+        
+        pos_camara[1] = max(0,pos_camara[1])
+        pos_camara[1] = min(ALTO_FASE-ALTO_PANTALLA_GL,pos_camara[1])
             
         #pos_camara[0] = pos_camara[0]-(ANCHO_PANTALLA_GL/2)
         #pos_camara[1] = pos_camara[1]-(ALTO_PANTALLA_GL/2)
