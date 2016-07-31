@@ -14,7 +14,7 @@ def simplificar_fraccion(dividendo, divisor):
 
 pygame.display.init()
 
-FPS = 60
+FPS = 30
 
 RESOLUCION = [pygame.display.Info().current_w,pygame.display.Info().current_h]
 

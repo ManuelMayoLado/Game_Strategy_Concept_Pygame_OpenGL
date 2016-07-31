@@ -13,6 +13,7 @@ from pygame.locals import *
 import ctypes
 import os
 import sys
+import math
 
 if os.name == 'nt' and sys.getwindowsversion()[0] >= 6:
     ctypes.windll.user32.SetProcessDPIAware()
@@ -30,7 +31,7 @@ pygame.init()
 
 #VENTANA
 
-ventana = pygame.display.set_mode([ANCHO_VENTANA,ALTO_VENTANA],OPENGL|DOUBLEBUF|HWSURFACE)
+ventana = pygame.display.set_mode([ANCHO_VENTANA,ALTO_VENTANA],OPENGL|DOUBLEBUF)
 
 pygame.display.set_caption("Xogo_Estratexia")
 
@@ -50,14 +51,26 @@ def main():
     global ALTO_PANTALLA_GL
 
     # esteban cambiou esto
-    ANCHO_PANTALLA_GL = 390
+    ANCHO_PANTALLA_GL = 400
     ALTO_PANTALLA_GL = ANCHO_PANTALLA_GL / DIF_ASP
     global pos_camara
-    pos_camara[:] = [4.5, 0]
+    pos_camara[:] = [0, 0]
     #INICIAR OPENGL
     pos_mouse_gl = False
-	
-    radio = 20
+    
+    n_hex_columna = 15
+    radio = (ALTO_FASE/float(n_hex_columna))/1.5
+    radio = round(radio-0.5)
+    n_hex_fila = (ANCHO_FASE/(radio*math.sqrt(3)))
+    n_hex_fila = int(round(n_hex_fila-0.5))
+    centro0 = [radio*math.sqrt(3)/2,radio]
+    
+    print "ANCHO FASE:",ANCHO_FASE
+    print "ALTO FASE:",ALTO_FASE
+    print "RADIO:",radio
+    print "N HEX COLUMN:",n_hex_columna
+    print "N HEX ROW:",n_hex_fila
+    print "HEX NUMBER:",n_hex_columna*n_hex_fila
 
     init_gl()
 
@@ -75,7 +88,7 @@ def main():
             #LISTAS DE OPENGL
             
             ID_LISTA_GRELLA = glGenLists(1)
-            crear_lista_grella(ID_LISTA_GRELLA,radio,[1.7 * radio, 2 * radio],10,8)
+            crear_lista_grella(ID_LISTA_GRELLA,radio,centro0,n_hex_fila,n_hex_columna)
             
             _fase_cargada = True
 
@@ -104,19 +117,14 @@ def main():
         glColor4f(0.5, 0.5, 1, 0.5)
         debuxar_rect_gl(v_f,pos=False)
         
-        glColor4f(0, 0.5, 1, 0.8)
-        #debuxar_hex(100,[ANCHO_FASE/2,ALTO_FASE/2])
-        #debuxar_fila(20,[ANCHO_FASE/2,ALTO_FASE/2], 5)
-        
         #if pos_mouse_gl:
         #    debuxar_grella(radio, [1.7 * radio, 2 * radio], 10, 8, *pos_mouse_gl)
         #else:
         #    debuxar_grella(radio, [1.7 * radio, 2 * radio], 10, 8)
         
         glCallList(ID_LISTA_GRELLA)
-        
         if pos_mouse_gl:
-             debuxar_hex_con_pxpy(radio,[1.7 * radio, 2 * radio],10,8,pos_mouse_gl[0],pos_mouse_gl[1])
+             debuxar_hex_con_pxpy(radio,centro0,n_hex_fila,n_hex_columna,pos_mouse_gl[0],pos_mouse_gl[1])
         
         ############################################
         #EVENTOS
