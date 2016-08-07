@@ -39,7 +39,7 @@ def calcular_marco(resolucion,ancho_gl,alto_gl,dif_asp):
 def init_gl(marco_lateral,marco_vertical,ancho,alto):
     glViewport(marco_lateral/2,marco_vertical/2,ancho-marco_lateral,alto-marco_vertical)
     glClearColor(0,0,0,0)
-    glEnable(GL_TEXTURE_2D)
+    #glEnable(GL_TEXTURE_2D)
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     glEnable(GL_LINE_SMOOTH)
@@ -78,7 +78,7 @@ def debuxar_hex(radio, centro, cor,cor_linha=False):
         glVertex2d(math.sin(ang)*radio,math.cos(ang)*radio)
     glEnd()
     if not cor_linha:
-        glColor4f(0, 0, 0, 0.3)
+        glColor4f(0, 0, 0, 0.5)
     else:
         glColor4f(*cor_linha)
     glBegin(GL_LINE_LOOP)
@@ -146,7 +146,7 @@ def redondea_xyz(x, y, z):
         rz = -rx - ry
     return rx, ry, rz
 
-def debuxar_grella_numeros(radio, centro0, columnas, filas, tamanho_letra, px=None, py=None):
+def debuxar_grella(radio, centro0, columnas, filas, tamanho_letra, numeros=False, px=None, py=None):
     for fila in xrange(filas):
         for columna in xrange(columnas):
             centro = columna_fila_a_pixeles(radio, centro0, columna, fila)
@@ -159,9 +159,10 @@ def debuxar_grella_numeros(radio, centro0, columnas, filas, tamanho_letra, px=No
             debuxar_hex(radio, centro, cor)
             x,y,z = columna_fila_a_xyz(columna,fila)
             glColor4f(*cor)
-            drawText(radio/5.5, 0, str(x), tamanho_letra, cor_text)
-            drawText(-radio/1.5, 0, str(y), tamanho_letra, cor_text)
-            drawText(-radio/4, -radio/1.5, str(z), tamanho_letra, cor_text)
+            if numeros:
+                drawText(radio/5.5, 0, str(x), tamanho_letra, cor_text)
+                drawText(-radio/1.5, 0, str(y), tamanho_letra, cor_text)
+                drawText(-radio/4, -radio/1.5, str(z), tamanho_letra, cor_text)
             
 def debuxar_hex_con_pxpy(radio,centro0,columnas,filas,px,py):
     cor = 0.9, 0.4, 0.4, 0.2
@@ -169,6 +170,10 @@ def debuxar_hex_con_pxpy(radio,centro0,columnas,filas,px,py):
     if (0 <= columna < columnas) and (0 <= fila < filas):
         centro = columna_fila_a_pixeles(radio, centro0, columna, fila)
         debuxar_hex(radio, centro, cor,[1.0,0.1,0.1,1])
+        x,y,z = columna_fila_a_xyz(columna,fila)
+        return {"Columna":columna,"Fila":fila}, {"X":x,"Y":y,"Z":z}
+    else:
+        return False
      
 def debuxar_rect_gl(vertices,pos=False):
     glLoadIdentity()
@@ -194,8 +199,8 @@ def debuxar_rect_gl(vertices,pos=False):
 #    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texturaSurface.get_width(), texturaSurface.get_height(), 0,
 #                           GL_RGBA, GL_UNSIGNED_BYTE, texturaData)
     
-def crear_lista_grella_numeros(id_lista,radio,centro0,columnas,filas,tamanho_letra):
+def crear_lista_grella(id_lista,radio,centro0,columnas,filas,tamanho_letra,numeros):
     glNewList(id_lista, GL_COMPILE)
     glLoadIdentity()
-    debuxar_grella_numeros(radio, centro0, columnas, filas, tamanho_letra,px=None, py=None)
+    debuxar_grella(radio, centro0, columnas, filas, tamanho_letra,numeros,px=None, py=None)
     glEndList()

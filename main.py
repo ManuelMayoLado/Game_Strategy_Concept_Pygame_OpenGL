@@ -80,29 +80,66 @@ def main():
     global pos_camara
     global manter_letra
     
+    #Variables 3
+    
+    hex_mouse_deb = False
     pos_mouse_gl = False
+    numeros_hex = False
     
-    n_hex_columna = 14
-    radio = (ALTO_FASE/float(n_hex_columna))/1.5
-    radio = round(radio-0.5)
+    #NUMERO DE HEXAGONOS
+    ###############################################
+    n_hex_columna = 10
+    n_hex_fila = 15
+    ###############################################
     
-    n_hex_fila = (ANCHO_FASE/(radio*math.sqrt(3)))
-    n_hex_fila = int(round(n_hex_fila-0.5))
+    n_hex_columna = max(1,n_hex_columna)
+    n_hex_fila = max(1,n_hex_fila)
     
-    ancho_hex_total = n_hex_fila*(radio*math.sqrt(3))
-    alto_hex_total = n_hex_columna*(radio/1.5)
+    radio = ((ALTO_FASE/float(n_hex_columna+1))*0.75)
+        
+    if not n_hex_fila:
+        n_hex_fila = (ANCHO_FASE/(radio*math.sqrt(3)))
+        n_hex_fila = int(round(n_hex_fila-0.5))
+        calcular_hex_fila = True
+    else:
+        calcular_hex_fila = False
+        
+    ancho_hex_total = n_hex_fila*(radio*math.sqrt(3))+abs(n_hex_columna%2-1)*radio*0.75
+    alto_hex_total = n_hex_columna*radio*1.5+radio/2
+        
+    while alto_hex_total >= ALTO_FASE:
+        radio -= 0.1
+        if calcular_hex_fila:
+            n_hex_fila = (ANCHO_FASE/(radio*math.sqrt(3)))
+            n_hex_fila = int(round(n_hex_fila-0.5))
+        alto_hex_total = n_hex_columna*radio*1.5+radio/2
+        ancho_hex_total = n_hex_fila*(radio*math.sqrt(3))+abs(n_hex_columna%2-1)*radio*0.75
+            
+    while ancho_hex_total >= ANCHO_FASE:
+        if calcular_hex_fila:
+            n_hex_fila -= 1
+        else:
+            radio -= 0.1
+        alto_hex_total = n_hex_columna*radio*1.5+radio/2
+        ancho_hex_total = n_hex_fila*(radio*math.sqrt(3))+abs(n_hex_columna%2-1)*radio*0.75
+            
+    ancho_hex_total = n_hex_fila*(radio*math.sqrt(3))+abs(n_hex_columna%2-1)*radio*0.75
+    alto_hex_total = n_hex_columna*radio*1.5+radio/2
+        
+    dif_alto_hex = (ALTO_FASE-alto_hex_total)
+    dif_ancho_hex = (ANCHO_FASE-ancho_hex_total)
     
-    dif_alto_hex = (ALTO_FASE-alto_hex_total)/2
-    dif_ancho_hex = (ANCHO_FASE-ancho_hex_total)/2
+    print "Number of Hexs:", n_hex_fila*n_hex_columna
     
-    centro0 = [dif_ancho_hex/4+radio*math.sqrt(3)/2,dif_alto_hex/4+radio]
     
-    print "ANCHO FASE:",ANCHO_FASE
-    print "ALTO FASE:",ALTO_FASE
-    print "RADIO:",radio
-    print "N HEX COLUMN:",n_hex_columna
-    print "N HEX ROW:",n_hex_fila
-    print "HEX NUMBER:",n_hex_columna*n_hex_fila
+    centro0 = [dif_ancho_hex/2+radio*math.sqrt(3)/2,dif_alto_hex/2+radio]
+    
+    #print "ANCHO FASE:",ANCHO_FASE
+    #print "ALTO FASE:",ALTO_FASE
+    #print "RADIO:",radio
+    #print "N HEX COLUMN:",n_hex_columna
+    #print "N HEX ROW:",n_hex_fila
+    #print "HEX NUMBER:",n_hex_columna*n_hex_fila
 
     init_gl(MARCO_LATERAL,MARCO_VERTICAL,ANCHO_VENTANA,ALTO_VENTANA)
 
@@ -120,8 +157,8 @@ def main():
             #LISTAS DE OPENGL
             
             ID_LISTA_GRELLA = glGenLists(1)
-            tamanho_da_letra = radio * max(1,((ANCHO_FASE/ANCHO_PANTALLA_GL)*3))
-            crear_lista_grella_numeros(ID_LISTA_GRELLA,radio,centro0,n_hex_fila,n_hex_columna,tamanho_da_letra)
+            tamanho_da_letra = radio * max(1,((ANCHO_FASE/ANCHO_PANTALLA_GL)*3)) + max(0,ANCHO_VENTANA/600)
+            crear_lista_grella(ID_LISTA_GRELLA,radio,centro0,n_hex_fila,n_hex_columna,tamanho_da_letra,numeros_hex)
             
             _fase_cargada = True
 
@@ -150,7 +187,8 @@ def main():
         
         glCallList(ID_LISTA_GRELLA)
         if pos_mouse_gl:
-             debuxar_hex_con_pxpy(radio,centro0,n_hex_fila,n_hex_columna,pos_mouse_gl[0],pos_mouse_gl[1])
+             hex_mouse_deb = debuxar_hex_con_pxpy(radio,centro0,n_hex_fila,n_hex_columna,pos_mouse_gl[0],pos_mouse_gl[1])
+        
         
         ############################################
         #EVENTOS
@@ -179,6 +217,9 @@ def main():
 
             #MOUSE
             if evento.type == pygame.MOUSEBUTTONDOWN:
+                if evento.button == 1:
+                    if pos_mouse_gl and hex_mouse_deb:
+                        print hex_mouse_deb
                 if evento.button == 4:
                     if not ANCHO_PANTALLA_GL == ANCHO_FASE/2:
                         ANCHO_PANTALLA_GL -= ZOOM
@@ -204,6 +245,14 @@ def main():
 
             #TECLADO
             if evento.type == pygame.KEYDOWN:
+            
+            #N -> NUMEROS HEX
+                if evento.key == K_n:
+                    if not numeros_hex:
+                        numeros_hex = True
+                    else:
+                        numeros_hex = False
+                    _fase_cargada = False
 
                 #ESC - CERRAR  XOGO
                 if evento.key == K_ESCAPE:
