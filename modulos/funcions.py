@@ -7,20 +7,37 @@
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
-import math
 
-from constantes import *
+import pygame
+import math
 
 def pos(n, num_cadros_ancho_fase):
     return [n % num_cadros_ancho_fase, n / num_cadros_ancho_fase]
 
 def num(p, num_cadros_ancho_fase):
     return p[0]+p[1]*num_cadros_ancho_fase
+    
+def simplificar_fraccion(dividendo, divisor):
+        for i in range(dividendo,2,-1):
+            if dividendo%i == 0 and divisor%i == 0:
+                return dividendo/float(i), divisor/float(i)
+        return None
+    
+def calcular_marco(resolucion,ancho_gl,alto_gl,dif_asp):
+    ancho_esperable = resolucion[1] * dif_asp
+    marco_lateral = int(resolucion[0] - ancho_esperable)
+    if marco_lateral < 0:
+        alto_esperable = resolucion[0] / dif_asp
+        marco_vertical = int(resolucion[1] - alto_esperable)
+        marco_lateral = 0
+    else:
+        marco_vertical = 0
+    return marco_lateral, marco_vertical
 
 #### OPENGL ####
 
-def init_gl():
-    glViewport(MARCO_LATERAL/2,MARCO_VERTICAL/2,ANCHO_VENTANA-MARCO_LATERAL,ALTO_VENTANA-MARCO_VERTICAL)
+def init_gl(marco_lateral,marco_vertical,ancho,alto):
+    glViewport(marco_lateral/2,marco_vertical/2,ancho-marco_lateral,alto-marco_vertical)
     glClearColor(0,0,0,0)
     glEnable(GL_TEXTURE_2D)
     glEnable(GL_BLEND)
@@ -28,7 +45,7 @@ def init_gl():
     glEnable(GL_LINE_SMOOTH)
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
 
-def limpiar_ventana_gl(ancho_gl,alto_gl):
+def limpiar_ventana_gl(ancho_gl,alto_gl,pos_camara):
     glClear(GL_COLOR_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -40,7 +57,7 @@ def drawText(x, y, text, tamanho,cor_background):
     font = pygame.font.Font(None, int(tamanho))                                          
     textSurface = font.render(text, True, (0,0,0,255), cor_background)                                   
     textData = pygame.image.tostring(textSurface, "RGBA", True)              
-    glRasterPos3d(x-textSurface.get_width()/2,y-textSurface.get_height()/2,0)
+    glRasterPos3d(x,y,0)
     glDrawPixels(textSurface.get_width(), textSurface.get_height(),         
                 GL_RGBA, GL_UNSIGNED_BYTE, textData)
 
@@ -60,7 +77,6 @@ def debuxar_hex(radio, centro, cor,cor_linha=False):
         ang = i/6.0*2*math.pi
         glVertex2d(math.sin(ang)*radio,math.cos(ang)*radio)
     glEnd()
-    #
     if not cor_linha:
         glColor4f(0, 0, 0, 0.3)
     else:
@@ -130,7 +146,7 @@ def redondea_xyz(x, y, z):
         rz = -rx - ry
     return rx, ry, rz
 
-def debuxar_grella(radio, centro0, columnas, filas, px=None, py=None):
+def debuxar_grella_numeros(radio, centro0, columnas, filas, tamanho_letra, px=None, py=None):
     for fila in xrange(filas):
         for columna in xrange(columnas):
             centro = columna_fila_a_pixeles(radio, centro0, columna, fila)
@@ -143,9 +159,9 @@ def debuxar_grella(radio, centro0, columnas, filas, px=None, py=None):
             debuxar_hex(radio, centro, cor)
             x,y,z = columna_fila_a_xyz(columna,fila)
             glColor4f(*cor)
-            drawText(radio/2, radio/3, str(x), radio, cor_text)
-            drawText(-radio/2+3, radio/3, str(y), radio, cor_text)
-            drawText(2, -radio/3, str(z), radio, cor_text)
+            drawText(radio/5.5, 0, str(x), tamanho_letra, cor_text)
+            drawText(-radio/1.5, 0, str(y), tamanho_letra, cor_text)
+            drawText(-radio/4, -radio/1.5, str(z), tamanho_letra, cor_text)
             
 def debuxar_hex_con_pxpy(radio,centro0,columnas,filas,px,py):
     cor = 0.9, 0.4, 0.4, 0.2
@@ -160,35 +176,26 @@ def debuxar_rect_gl(vertices,pos=False):
         glTranslatef(pos[0], pos[1], 0)
     glBegin(GL_QUADS)
     for v in range(0,len(vertices),4):
-        glTexCoord2f(0,0)
+#        glTexCoord2f(0,0)
         glVertex2f(vertices[v][0],vertices[v][1])
-        glTexCoord2f(1,0)
+#        glTexCoord2f(1,0)
         glVertex2f(vertices[v+1][0],vertices[v+1][1])
-        glTexCoord2f(1,1)
+#        glTexCoord2f(1,1)
         glVertex2f(vertices[v+2][0],vertices[v+2][1])
-        glTexCoord2f(0,1)
+#        glTexCoord2f(0,1)
         glVertex2f(vertices[v+3][0],vertices[v+3][1])
     glEnd()
 
-def cargar_imagen_textura(imagen):
-    texturaSurface = pygame.image.load(imagen).convert_alpha()
-    texturaData = pygame.image.tostring(texturaSurface, "RGBA", True)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texturaSurface.get_width(), texturaSurface.get_height(), 0,
-                           GL_RGBA, GL_UNSIGNED_BYTE, texturaData)
-
-def crear_lista(id_lista,vertices,forma):
-    glNewList(id_lista, GL_COMPILE) ### INICIO LISTA
-    glLoadIdentity()
-    if forma=="liña":
-        debuxar_linha(vertices)
-    elif forma=="rectangulo":
-        debuxar_rect_gl(vertices)
-    glEndList() ############################### FIN LISTA
+#def cargar_imagen_textura(imagen):
+#    texturaSurface = pygame.image.load(imagen).convert_alpha()
+#    texturaData = pygame.image.tostring(texturaSurface, "RGBA", True)
+#    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+#    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+#    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texturaSurface.get_width(), texturaSurface.get_height(), 0,
+#                           GL_RGBA, GL_UNSIGNED_BYTE, texturaData)
     
-def crear_lista_grella(id_lista,radio,centro0,columnas,filas):
+def crear_lista_grella_numeros(id_lista,radio,centro0,columnas,filas,tamanho_letra):
     glNewList(id_lista, GL_COMPILE)
     glLoadIdentity()
-    debuxar_grella(radio, centro0, columnas, filas, px=None, py=None)
+    debuxar_grella_numeros(radio, centro0, columnas, filas, tamanho_letra,px=None, py=None)
     glEndList()

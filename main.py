@@ -20,10 +20,11 @@ if os.name == 'nt' and sys.getwindowsversion()[0] >= 6:
 
 #VARIABLES
 
-camara_libre = True
-mostrar_cadricula = True
-
+FPS = 30
+pos_camara = [0,0]
 _fase_cargada = False
+
+manter_letra = 10
 
 #INICIAR PYGAME
 
@@ -31,8 +32,33 @@ pygame.init()
 
 #VENTANA
 
-ventana = pygame.display.set_mode([ANCHO_VENTANA,ALTO_VENTANA],OPENGL|DOUBLEBUF)
+RESOLUCION_PANTALLA = [pygame.display.Info().current_w,pygame.display.Info().current_h]
+ASPECTRO_REAL = RESOLUCION_PANTALLA[0]/float(RESOLUCION_PANTALLA[1])
+DIF_ASP = ASPECTRO_REAL
+#DIF_ASP = 1.3333
 
+RESOLUCION = RESOLUCION_PANTALLA[:]
+RESOLUCION[0] = int(RESOLUCION[0]/2)
+RESOLUCION[1] = int(RESOLUCION[1]/2)
+ANCHO_VENTANA, ALTO_VENTANA = RESOLUCION
+
+#TAMANHO GL
+ALTO_PANTALLA_GL = 100
+ANCHO_PANTALLA_GL = ALTO_PANTALLA_GL * DIF_ASP
+
+MARCO_LATERAL,MARCO_VERTICAL = calcular_marco(RESOLUCION,ANCHO_PANTALLA_GL,ALTO_PANTALLA_GL,DIF_ASP)
+
+#variables 2
+
+VELOCIDADE_DESPLAZAMENTO = ALTO_PANTALLA_GL / 50
+ZOOM = ALTO_PANTALLA_GL / 20
+
+#FASE
+
+ALTO_FASE = 100
+ANCHO_FASE = ALTO_FASE * DIF_ASP
+
+ventana = pygame.display.set_mode([ANCHO_VENTANA,ALTO_VENTANA],OPENGL|DOUBLEBUF|HWSURFACE|RESIZABLE)
 pygame.display.set_caption("Xogo_Estratexia")
 
 #------------------------------------------------------------------------
@@ -45,25 +71,31 @@ def main():
 
     global _ON
     global _fase_cargada
-    global camara_libre
-    global mostrar_cadricula
     global ANCHO_PANTALLA_GL
     global ALTO_PANTALLA_GL
-
-    # esteban cambiou esto
-    ANCHO_PANTALLA_GL = 400
-    ALTO_PANTALLA_GL = ANCHO_PANTALLA_GL / DIF_ASP
+    global ANCHO_VENTANA
+    global ALTO_VENTANA
+    global MARCO_LATERAL
+    global MARCO_VERTICAL
     global pos_camara
-    pos_camara[:] = [0, 0]
-    #INICIAR OPENGL
+    global manter_letra
+    
     pos_mouse_gl = False
     
-    n_hex_columna = 15
+    n_hex_columna = 14
     radio = (ALTO_FASE/float(n_hex_columna))/1.5
     radio = round(radio-0.5)
+    
     n_hex_fila = (ANCHO_FASE/(radio*math.sqrt(3)))
     n_hex_fila = int(round(n_hex_fila-0.5))
-    centro0 = [radio*math.sqrt(3)/2,radio]
+    
+    ancho_hex_total = n_hex_fila*(radio*math.sqrt(3))
+    alto_hex_total = n_hex_columna*(radio/1.5)
+    
+    dif_alto_hex = (ALTO_FASE-alto_hex_total)/2
+    dif_ancho_hex = (ANCHO_FASE-ancho_hex_total)/2
+    
+    centro0 = [dif_ancho_hex/4+radio*math.sqrt(3)/2,dif_alto_hex/4+radio]
     
     print "ANCHO FASE:",ANCHO_FASE
     print "ALTO FASE:",ALTO_FASE
@@ -72,7 +104,7 @@ def main():
     print "N HEX ROW:",n_hex_fila
     print "HEX NUMBER:",n_hex_columna*n_hex_fila
 
-    init_gl()
+    init_gl(MARCO_LATERAL,MARCO_VERTICAL,ANCHO_VENTANA,ALTO_VENTANA)
 
     #BUCLE XOGO
     #-----------------
@@ -88,15 +120,14 @@ def main():
             #LISTAS DE OPENGL
             
             ID_LISTA_GRELLA = glGenLists(1)
-            crear_lista_grella(ID_LISTA_GRELLA,radio,centro0,n_hex_fila,n_hex_columna)
+            tamanho_da_letra = radio * max(1,((ANCHO_FASE/ANCHO_PANTALLA_GL)*3))
+            crear_lista_grella_numeros(ID_LISTA_GRELLA,radio,centro0,n_hex_fila,n_hex_columna,tamanho_da_letra)
             
             _fase_cargada = True
 
         #LIMPIAR VENTANA
 
-        limpiar_ventana_gl(ANCHO_PANTALLA_GL,ALTO_PANTALLA_GL)
-
-        #glBindTexture(GL_TEXTURE_2D,0)
+        limpiar_ventana_gl(ANCHO_PANTALLA_GL,ALTO_PANTALLA_GL,pos_camara)
 
         ############################################
         #DEBUXADO
@@ -116,11 +147,6 @@ def main():
         v_f = [[0,0],[ANCHO_FASE,0],[ANCHO_FASE,ALTO_FASE],[0,ALTO_FASE]]
         glColor4f(0.5, 0.5, 1, 0.5)
         debuxar_rect_gl(v_f,pos=False)
-        
-        #if pos_mouse_gl:
-        #    debuxar_grella(radio, [1.7 * radio, 2 * radio], 10, 8, *pos_mouse_gl)
-        #else:
-        #    debuxar_grella(radio, [1.7 * radio, 2 * radio], 10, 8)
         
         glCallList(ID_LISTA_GRELLA)
         if pos_mouse_gl:
@@ -155,39 +181,47 @@ def main():
             if evento.type == pygame.MOUSEBUTTONDOWN:
                 if evento.button == 4:
                     if not ANCHO_PANTALLA_GL == ANCHO_FASE/2:
-                        ANCHO_PANTALLA_GL -= 4
+                        ANCHO_PANTALLA_GL -= ZOOM
                         ANCHO_PANTALLA_GL = max(ANCHO_FASE/2,ANCHO_PANTALLA_GL)
-                        pos_camara[0] += 2
-                        pos_camara[1] += 2
+                        pos_camara[0] += ZOOM/2
+                        pos_camara[1] += ZOOM/2
                 elif evento.button == 5:
                     if not ANCHO_PANTALLA_GL == ANCHO_FASE:
-                        ANCHO_PANTALLA_GL += 4
+                        ANCHO_PANTALLA_GL += ZOOM
                         ANCHO_PANTALLA_GL = min(ANCHO_FASE,ANCHO_PANTALLA_GL)
-                        pos_camara[0] -= 2
-                        pos_camara[1] -= 2
+                        pos_camara[0] -= ZOOM/2
+                        pos_camara[1] -= ZOOM/2
                 if evento.button in [4,5]:
                     ALTO_PANTALLA_GL = ANCHO_PANTALLA_GL / DIF_ASP
+                    if not manter_letra:
+                        if radio * max(1,((ANCHO_FASE/ANCHO_PANTALLA_GL)/1.5)) != tamanho_da_letra:
+                            _fase_cargada = False
+                            manter_letra = 10
+                        else:
+                            manter_letra = 10
+                    else:
+                        manter_letra -= 1
 
             #TECLADO
             if evento.type == pygame.KEYDOWN:
 
-                #CAMARA_LIBRE
-                if evento.key == K_c:
-                    if camara_libre:
-                        camara_libre=False
-                    else:
-                        camara_libre=True
-
-                #MOSTRAR_CADRICULA
-                if evento.key == K_v:
-                    if mostrar_cadricula:
-                        mostrar_cadricula = False
-                    else:
-                        mostrar_cadricula = True
-
                 #ESC - CERRAR  XOGO
                 if evento.key == K_ESCAPE:
                     _ON = False
+            
+            #REDIMENSIONAR       
+            if evento.type == VIDEORESIZE:
+                ANCHO_VENTANA = max(evento.dict['size'][0],int(RESOLUCION_PANTALLA[0]/3))
+                ALTO_VENTANA = max(evento.dict['size'][1],int(RESOLUCION_PANTALLA[1]/3))
+                ANCHO_PANTALLA_GL = max(ANCHO_FASE/2,ANCHO_PANTALLA_GL)
+                ANCHO_PANTALLA_GL = min(ANCHO_FASE,ANCHO_PANTALLA_GL)
+                ALTO_PANTALLA_GL = ANCHO_PANTALLA_GL / DIF_ASP
+                ventana = pygame.display.set_mode([ANCHO_VENTANA,ALTO_VENTANA],OPENGL|DOUBLEBUF|RESIZABLE)
+                RESOLUCION[0] = ANCHO_VENTANA
+                RESOLUCION[1] = ALTO_VENTANA
+                MARCO_LATERAL,MARCO_VERTICAL = calcular_marco(RESOLUCION,ANCHO_PANTALLA_GL,ALTO_PANTALLA_GL,DIF_ASP)
+                init_gl(MARCO_LATERAL,MARCO_VERTICAL,ANCHO_VENTANA,ALTO_VENTANA)
+                _fase_cargada = False
 
             #QUIT
             if evento.type == pygame.QUIT:
@@ -200,27 +234,18 @@ def main():
         #CAMARA
         
         if tecla_pulsada[K_RIGHT]:
-            pos_camara[0] += 1
+            pos_camara[0] += VELOCIDADE_DESPLAZAMENTO
         if tecla_pulsada[K_LEFT]:
-            pos_camara[0] -= 1
+            pos_camara[0] -= VELOCIDADE_DESPLAZAMENTO
         if tecla_pulsada[K_UP]:
-            pos_camara[1] += 1
+            pos_camara[1] += VELOCIDADE_DESPLAZAMENTO
         if tecla_pulsada[K_DOWN]:
-            pos_camara[1] -= 1
+            pos_camara[1] -= VELOCIDADE_DESPLAZAMENTO
         pos_camara[0] = max(0,pos_camara[0])
         pos_camara[0] = min(ANCHO_FASE-ANCHO_PANTALLA_GL,pos_camara[0])
         
         pos_camara[1] = max(0,pos_camara[1])
         pos_camara[1] = min(ALTO_FASE-ALTO_PANTALLA_GL,pos_camara[1])
-            
-        #pos_camara[0] = pos_camara[0]-(ANCHO_PANTALLA_GL/2)
-        #pos_camara[1] = pos_camara[1]-(ALTO_PANTALLA_GL/2)
-
-        #pos_camara[0] = max(pos_camara[0], 0)
-        #pos_camara[0] = min(pos_camara[0], ANCHO_FASE-ANCHO_PANTALLA_GL)
-
-        #pos_camara[1] = max(pos_camara[1], 0)
-        #pos_camara[1] = min(pos_camara[1], ALTO_FASE-ALTO_PANTALLA_GL)
 
         pygame.display.flip()
 
