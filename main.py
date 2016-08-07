@@ -67,6 +67,8 @@ pygame.display.set_caption("Xogo_Estratexia")
 
 _ON = True
 
+presionadas = []
+
 def main():
 
     global _ON
@@ -79,6 +81,7 @@ def main():
     global MARCO_VERTICAL
     global pos_camara
     global manter_letra
+    global presionadas
     
     #Variables 3
     
@@ -213,6 +216,9 @@ def main():
 
         #EVENTOS
 
+        for x, y, z in presionadas:
+            debuxar_hex_con_pxpy(radio,centro0,n_hex_fila,n_hex_columna, *columna_fila_a_pixeles(radio, centro0, *xyz_a_columna_fila(x, y, z)))
+
         for evento in pygame.event.get():
 
             #MOUSE
@@ -220,6 +226,7 @@ def main():
                 if evento.button == 1:
                     if pos_mouse_gl and hex_mouse_deb:
                         print hex_mouse_deb
+                        presionadas[:] = vicinhas(*list(hex_mouse_deb[1][x] for x in 'XYZ') + [3])
                 if evento.button == 4:
                     if not ANCHO_PANTALLA_GL == ANCHO_FASE/2:
                         ANCHO_PANTALLA_GL -= ZOOM
