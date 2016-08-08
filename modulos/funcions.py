@@ -146,6 +146,30 @@ def redondea_xyz(x, y, z):
         rz = -rx - ry
     return rx, ry, rz
 
+def contador():
+    a = 0
+    while True:
+        yield a
+        a += 1
+
+def vicinhas(x, y, z, n=1):
+    return ((x + dx, y + dy, z - dx - dy)
+            for dx in xrange(-n, n+1)
+            for dy in xrange(max(-n, -dx-n), min(n, -dx + n) + 1)
+            if (dx, dy) != (0, 0))
+
+#    for dx in xrange(-n, n+1):
+#        for dy in xrange(max(-n, -dx-n), min(n, -dx + n) + 1):
+#            dz = -dx-dy
+#            if (dx, dy, dz) != (0, 0, 0):
+#                yield x + dx, y + dy, z + dz
+
+#    for dx in xrange(-n, n+1):
+#        for dy in xrange(-n, n+1):
+#            for dz in xrange(-n, n+1):
+#                if dx + dy + dz == 0:
+#                    yield x + dx, y + dy, z + dz
+
 def debuxar_grella(radio, centro0, columnas, filas, tamanho_letra, numeros=False, px=None, py=None):
     for fila in xrange(filas):
         for columna in xrange(columnas):
