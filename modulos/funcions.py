@@ -9,6 +9,12 @@ import math
 
 arial = font.load('Arial', 14, bold=True, italic=False)
 
+#if python3
+try:
+    xrange
+except NameError:
+    xrange = range
+
 def pos(n, num_cadros_ancho_fase):
     return [n % num_cadros_ancho_fase, n / num_cadros_ancho_fase]
 
